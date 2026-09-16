@@ -1,0 +1,52 @@
+name: Build TorrServerKit XCFramework
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout TorrServer
+        uses: actions/checkout@v4
+        with:
+          repository: YouROK/TorrServer
+          fetch-depth: 0
+
+      - name: Show tool versions
+        run: |
+          xcodebuild -version
+          go version
+
+      - name: Install Go mobile tools
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          echo "$HOME/go/bin" >> "$GITHUB_PATH"
+
+      - name: Initialize gomobile
+        run: |
+          gomobile init
+
+      - name: Build iOS XCFramework
+        run: |
+          chmod +x ./build-ios.sh
+          ./build-ios.sh
+
+      - name: Find XCFramework
+        run: |
+          find . -name "TorrServerKit.xcframework" -print
+
+      - name: Package XCFramework
+        run: |
+          mkdir -p artifact
+          cp -R TorrServerKit.xcframework artifact/
+          cd artifact
+          zip -r TorrServerKit.xcframework.zip TorrServerKit.xcframework
+
+      - name: Upload XCFramework
+        uses: actions/upload-artifact@v4
+        with:
+          name: TorrServerKit-xcframework
+          path: artifact/TorrServerKit.xcframework.zip
